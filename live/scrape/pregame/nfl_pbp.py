@@ -4,8 +4,8 @@ import sys
 import pandas as pd
 import bs4
 import requests as r
-import nfl_macros as m
-import openers_2 as of
+import live.scrape.pregame.nfl_macros as m
+import live.scrape.pregame.openers_2 as of
 from lxml import html
 import requests
 
