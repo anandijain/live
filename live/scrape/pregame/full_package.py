@@ -1,16 +1,17 @@
 import os
 import sys
+import live
 
 import pandas as pd
 import bs4
 import requests as r
-import nfl_macros as m
-import openers_2 as of
+import live.scrape.pregame.nfl_macros as m
+import live.scrape.pregame.openers_2 as of
 from lxml import html
 import requests
-import nfl_helpers as h
+import live.scrape.pregame.nfl_helpers as h
 import numpy as np
-import nfl_pbp as p
+import live.scrape.pregame.nfl_pbp as p
 
 
 
@@ -56,9 +57,9 @@ def remove_unwanted_urls(boxes):
 		d2 = boxes[x][18]
 		date = int(str(y1) + str(y2) + str(y3) + str(y4) + str(m1) + str(m2) + str(d1) + str(d2))
 		# print(date)
-		if date > 20191104: # change this number for the date that you want to target
+		if date > 20191111: # change this number for the date that you want to target
 			continue
-		if date < 20191024:
+		if date < 20191028:
 			continue
 		else:
 			newboxes.append(boxes[x])
@@ -71,7 +72,7 @@ def remove_unwanted_urls(boxes):
 
 # second function needs to take in these ids and gather all the data we need for the games (this will gather game data for every game of that season up until that point! This will require multiple functions)
 
-def scraper_main(start='201910240min', stop='201911040nyg'):
+def scraper_main(start='201910280pit', stop='201911110sfo'):
 	data_root = '.' + m.data
 	boxes = generate_urls()
 	print(boxes)
@@ -79,7 +80,7 @@ def scraper_main(start='201910240min', stop='201911040nyg'):
 	print(newboxes)
 	df = pd.DataFrame()
 	df['urls'] = newboxes
-	df.write_csv(fn='2019_boxes.csv')
+	write_csv(df, fn='2019_boxes.csv')
 	df = open_csv('2019_boxes.csv')
 	# print(df)
 	df2 = df['urls'].tolist()
@@ -123,7 +124,7 @@ def scraper_main(start='201910240min', stop='201911040nyg'):
 	df4 = open_csv(fn='nfl_history2.csv')
 	turn_date_to_int(df2)
 	df = pd.concat([df4,df2])
-	df.write_csv(fn='nfl_history2.csv')
+	write_csv(df, fn='nfl_history2.csv')
 	df = open_csv(fn='nfl_history2.csv')
 	# remove_crap(df)
 	fix_total(df)
@@ -131,7 +132,7 @@ def scraper_main(start='201910240min', stop='201911040nyg'):
 	# print(df['Date'])
 	assign_season(df)
 	win(df)
-	df.write_csv(fn=fn='nfl_history2.csv')
+	write_csv(df, fn='nfl_history2.csv')
 	df = fix_basic_train(df)
 	df = fix_two_number_cols(df)
 	df = set_cols_for_analysis(df)
@@ -154,8 +155,10 @@ def scraper_main(start='201910240min', stop='201911040nyg'):
 	# df3.write_csv(fn='nfl_week9_expanded.csv')
 	fix_advanced_train(df3)
 	df = open_csv(fn='nfl_history2.csv')
-	df = df[df.Date <= 20191028]
-	df.write_csv(fn='nfl_history2.csv')
+	df = df[df.Date <= 20191104]
+	write_csv(df, fn='nfl_history2.csv')
+	merged = pd.merge(df3, df, on=['Game_id'], how='inner')
+	write_csv(merged, fn='nfl_one_train.csv')
 	# dict1 = get_dict_of_df()
 	# print(type(df3))
 	# print(df3)
@@ -488,7 +491,7 @@ def write_past_interior(path, page=of.page(m.url + '/boxscores/199101200buf.htm'
 	coach = coaches(path, page, game_id)
 	points = gen_stats(path, page, game_id)
 
-	fn = 'nfl_2019.csv'
+	fn = '/Users/ethanabraham/Desktop/ABSA/live/live/../data/nfl_2019.csv'
 	file = open(fn, 'a')
 
 	for i, j in enumerate(meta):
@@ -529,7 +532,7 @@ def write_future_interior(path, page=of.page(m.url + '/boxscores/199101200buf.ht
 						0, 0, 0, 0, 0, 0, 0,
 						0, 0, 0, 0, 0, 0, 0,
 						0, 0, 0]
-	fn = 'nfl_2019.csv'
+	fn = '/Users/ethanabraham/Desktop/ABSA/live/live/../data/nfl_2019.csv'
 	file = open(fn, 'a')
 
 	for i, j in enumerate(meta):
@@ -564,7 +567,7 @@ def write_future_interior(path, page=of.page(m.url + '/boxscores/199101200buf.ht
 			file.write(',')
 
 def write_header():
-	fn = 'nfl_2019.csv'
+	fn = '/Users/ethanabraham/Desktop/ABSA/live/live/../data/nfl_2019.csv'
 	file = open(fn, 'w')
 
 	columns = m.nfl_ref_lineup
@@ -640,7 +643,7 @@ def fix_total(df):
 	# df = open_csv('nfl_2019.csv') 
 	df['h_total'] = df['h_1stq'] + df['h_2ndq'] + df['h_3rdq'] + df['h_4thq'] + df['h_5thq']
 	df['a_total'] = df['a_1stq'] + df['a_2ndq'] + df['a_3rdq'] + df['a_4thq'] + df['a_5thq']
-	df.write_csv(fn='nfl_2019.csv')
+	write_csv(df, fn='nfl_2019.csv')
 
 
 	return df
@@ -666,7 +669,7 @@ def turn_date_to_int(df):
 	# df = df.sort_values('Date', ascending=True, na_position='first')
 	df['Date'] = dates
 	print(df['Date'])
-	df.write_csv(fn='nfl_2019.csv')
+	write_csv(df, fn='nfl_2019.csv')
 # df['Date'] = dates
 	# print(df['Date'])
 	# df.write_csv(fn='nfl_2019.csv')
@@ -961,11 +964,11 @@ def get_stats(a_chunked, h_chunked):
 		newlist3 = [Na] + list4
 		newlist3 = newlist3[:-1]
 		teams['gen_avg_allowed'] = newlist3
-		# print('Gen_Games')
-		teams['Gen_Games'] = np.arange(len(teams))
-		# print('gen_rec')
-		teams['gen_rec'] = teams.gen_win.cumsum()
-		# print('gen_avg_pass_yards')
+		# # print('Gen_Games')
+		# teams['Gen_Games'] = np.arange(len(teams))
+		# # print('gen_rec')
+		# teams['gen_rec'] = teams.gen_win.cumsum()
+		# # print('gen_avg_pass_yards')
 		teams['gen_avg_pass_yards'] = teams.gen_net_pass_yards.expanding(1).mean()
 		list7 = teams['gen_avg_pass_yards']
 		list7 = list7.tolist()
@@ -997,146 +1000,146 @@ def get_stats(a_chunked, h_chunked):
 		newlist_rush_yards = [Na] + list_rush_yards
 		newlist_rush_yards = newlist_rush_yards[:-1]
 		teams['gen_avg_rush_yards'] = newlist_rush_yards
-		teams['gen_avg_fumbles'] = teams.gen_fumbles.expanding(1).mean()
-		listf = teams['gen_avg_fumbles']
-		listf = listf.tolist()
-		Na = 0
-		newlistf = [Na] + listf
-		newlistf = newlistf[:-1]
-		teams['gen_avg_fumbles'] = newlistf
-		teams['gen_avg_sacks'] = teams.gen_sacks.expanding(1).mean()
-		lists = teams['gen_avg_sacks']
-		lists = lists.tolist()
-		Na = 0
-		newlists = [Na] + lists
-		newlists = newlists[:-1]
-		teams['gen_avg_sacks'] = newlists
-		teams['gen_avg_sack_yards'] = teams.gen_sack_yards.expanding(1).mean()
-		listsy = teams['gen_avg_sack_yards']
-		listsy = listsy.tolist()
-		Na = 0
-		newlistsy = [Na] + listsy
-		newlistsy = newlistsy[:-1]
-		teams['gen_avg_sack_yards'] = newlistsy
-		teams['gen_avg_pass_tds'] = teams.gen_pass_td.expanding(1).mean()
-		listptds = teams['gen_avg_pass_tds']
-		listptds = listptds.tolist()
-		Na = 0
-		newlistptds = [Na] + listptds
-		newlistptds = newlistptds[:-1]
-		teams['gen_avg_pass_tds'] = newlistptds
-		teams['gen_avg_interceptions'] = teams.gen_interceptions.expanding(1).mean()
-		listint = teams['gen_avg_interceptions']
-		listint = listint.tolist()
-		Na = 0
-		newlistint = [Na] + listint
-		newlistint = newlistint[:-1]
-		teams['gen_avg_interceptions'] = newlistint
-		teams['gen_avg_total_yards'] = teams.gen_total_yards.expanding(1).mean()
-		list8 = teams['gen_avg_total_yards']
-		list8 = list8.tolist()
-		Na = 0
-		newlist8 = [Na] + list8
-		newlist8 = newlist8[:-1]
-		teams['gen_avg_total_yards'] = newlist8
-		teams['gen_avg_turnovers'] = teams.gen_turnovers.expanding(1).mean()
-		list9 = teams['gen_avg_turnovers']
-		list9 = list9.tolist()
-		Na = 0
-		newlist9 = [Na] + list9
-		newlist9 = newlist9[:-1]
-		teams['gen_avg_turnovers'] = newlist9
-		teams['gen_avg_first_downs'] = teams.gen_first_downs.expanding(1).mean()
-		list10 = teams['gen_avg_first_downs']
-		list10 = list10.tolist()
-		Na = 0
-		newlist10 = [Na] + list10
-		newlist10 = newlist10[:-1]
-		teams['gen_avg_first_downs'] = newlist10
-		teams['gen_avg_pass_comp_pct'] = teams.gen_pass_comp_pct.expanding(1).mean()
-		listppct = teams['gen_avg_pass_comp_pct']
-		listppct = listppct.tolist()
-		Na = 0
-		newlistppct = [Na] + listppct
-		newlistppct = newlistppct[:-1]
-		teams['gen_avg_pass_comp_pct'] = newlistppct
-		teams['gen_avg_ints_per_attempt'] = teams.gen_ints_per_attempt.expanding(1).mean()
-		list_ints_per = teams['gen_avg_ints_per_attempt']
-		list_ints_per = list_ints_per.tolist()
-		Na = 0
-		newlist_ints_per = [Na] + list_ints_per
-		newlist_ints_per = newlist_ints_per[:-1]
-		teams['gen_avg_ints_per_attempt'] = newlist_ints_per
-		teams['gen_avg_pass_yards_per_attempt'] = teams.gen_pass_yards_per_attempt.expanding(1).mean()
-		list_pass_yards_per = teams['gen_avg_pass_yards_per_attempt']
-		list_pass_yards_per = list_pass_yards_per.tolist()
-		Na = 0
-		newlist_pass_yards_per = [Na] + list_pass_yards_per
-		newlist_pass_yards_per = newlist_pass_yards_per[:-1]
-		teams['gen_avg_pass_yards_per_attempt'] = newlist_pass_yards_per
-		teams['gen_op_avg_penalty_yards'] = teams.gen_op_penalty_yards.expanding(1).mean()
-		listpy = teams['gen_op_avg_penalty_yards']
-		listpy = listpy.tolist()
-		Na = 0
-		newlistpy = [Na] + listpy
-		newlistpy = newlistpy[:-1]
-		teams['gen_op_avg_penalty_yards'] = newlistpy
-		teams['gen_avg_sacks_allowed'] = teams.gen_op_sacks.expanding(1).mean()
-		lists = teams['gen_avg_sacks_allowed']
-		lists = lists.tolist()
-		Na = 0
-		newlists = [Na] + lists
-		newlists = newlists[:-1]
-		teams['gen_avg_sacks_allowed'] = newlists
-		teams['gen_avg_sack_yards_allowed'] = teams.gen_op_sack_yards.expanding(1).mean()
-		listsy = teams['gen_avg_sack_yards_allowed']
-		listsy = listsy.tolist()
-		Na = 0
-		newlistsy = [Na] + listsy
-		newlistsy = newlistsy[:-1]
-		teams['gen_avg_sack_yards_allowed'] = newlistsy
-		teams['gen_avg_pass_tds_allowed'] = teams.gen_op_pass_td.expanding(1).mean()
-		listptds = teams['gen_avg_pass_tds_allowed']
-		listptds = listptds.tolist()
-		Na = 0
-		newlistptds = [Na] + listptds
-		newlistptds = newlistptds[:-1]
-		teams['gen_avg_pass_tds_allowed'] = newlistptds
-		teams['gen_avg_total_yards_allowed'] = teams.gen_op_total_yards.expanding(1).mean()
-		list8 = teams['gen_avg_total_yards_allowed']
-		list8 = list8.tolist()
-		Na = 0
-		newlist8 = [Na] + list8
-		newlist8 = newlist8[:-1]
-		teams['gen_avg_total_yards_allowed'] = newlist8
-		teams['gen_avg_first_downs_allowed'] = teams.gen_op_first_downs.expanding(1).mean()
-		list10 = teams['gen_avg_first_downs_allowed']
-		list10 = list10.tolist()
-		Na = 0
-		newlist10 = [Na] + list10
-		newlist10 = newlist10[:-1]
-		teams['gen_avg_first_downs_allowed'] = newlist10
-		teams['gen_avg_top_allowed'] = teams.gen_op_top.expanding(1).mean()
-		list11 = teams['gen_avg_top_allowed']
-		list11 = list11.tolist()
-		Na = 0
-		newlist11 = [Na] + list11
-		newlist11 = newlist11[:-1]
-		teams['gen_avg_top_allowed'] = newlist11
-		teams['gen_avg_pass_yards_per_attempt_allowed'] = teams.gen_op_pass_yards_per_attempt.expanding(1).mean()
-		list_pass_yards_per = teams['gen_avg_pass_yards_per_attempt_allowed']
-		list_pass_yards_per = list_pass_yards_per.tolist()
-		Na = 0
-		newlist_pass_yards_per = [Na] + list_pass_yards_per
-		newlist_pass_yards_per = newlist_pass_yards_per[:-1]
-		teams['gen_avg_pass_yards_per_attempt_allowed'] = newlist_pass_yards_per
-		teams['gen_avg_rush_tds_per_attempt_allowed'] = teams.gen_op_rush_tds_per_attempt.expanding(1).mean()
-		list_rush_tds_per = teams['gen_avg_rush_tds_per_attempt_allowed']
-		list_rush_tds_per = list_rush_tds_per.tolist()
-		Na = 0
-		newlist_rush_tds_per = [Na] + list_rush_tds_per
-		newlist_rush_tds_per = newlist_rush_tds_per[:-1]
-		teams['gen_avg_rush_tds_per_attempt_allowed'] = newlist_rush_tds_per
+		# teams['gen_avg_fumbles'] = teams.gen_fumbles.expanding(1).mean()
+		# listf = teams['gen_avg_fumbles']
+		# listf = listf.tolist()
+		# Na = 0
+		# newlistf = [Na] + listf
+		# newlistf = newlistf[:-1]
+		# teams['gen_avg_fumbles'] = newlistf
+		# teams['gen_avg_sacks'] = teams.gen_sacks.expanding(1).mean()
+		# lists = teams['gen_avg_sacks']
+		# lists = lists.tolist()
+		# Na = 0
+		# newlists = [Na] + lists
+		# newlists = newlists[:-1]
+		# teams['gen_avg_sacks'] = newlists
+		# teams['gen_avg_sack_yards'] = teams.gen_sack_yards.expanding(1).mean()
+		# listsy = teams['gen_avg_sack_yards']
+		# listsy = listsy.tolist()
+		# Na = 0
+		# newlistsy = [Na] + listsy
+		# newlistsy = newlistsy[:-1]
+		# teams['gen_avg_sack_yards'] = newlistsy
+		# teams['gen_avg_pass_tds'] = teams.gen_pass_td.expanding(1).mean()
+		# listptds = teams['gen_avg_pass_tds']
+		# listptds = listptds.tolist()
+		# Na = 0
+		# newlistptds = [Na] + listptds
+		# newlistptds = newlistptds[:-1]
+		# teams['gen_avg_pass_tds'] = newlistptds
+		# teams['gen_avg_interceptions'] = teams.gen_interceptions.expanding(1).mean()
+		# listint = teams['gen_avg_interceptions']
+		# listint = listint.tolist()
+		# Na = 0
+		# newlistint = [Na] + listint
+		# newlistint = newlistint[:-1]
+		# teams['gen_avg_interceptions'] = newlistint
+		# teams['gen_avg_total_yards'] = teams.gen_total_yards.expanding(1).mean()
+		# list8 = teams['gen_avg_total_yards']
+		# list8 = list8.tolist()
+		# Na = 0
+		# newlist8 = [Na] + list8
+		# newlist8 = newlist8[:-1]
+		# teams['gen_avg_total_yards'] = newlist8
+		# teams['gen_avg_turnovers'] = teams.gen_turnovers.expanding(1).mean()
+		# list9 = teams['gen_avg_turnovers']
+		# list9 = list9.tolist()
+		# Na = 0
+		# newlist9 = [Na] + list9
+		# newlist9 = newlist9[:-1]
+		# teams['gen_avg_turnovers'] = newlist9
+		# teams['gen_avg_first_downs'] = teams.gen_first_downs.expanding(1).mean()
+		# list10 = teams['gen_avg_first_downs']
+		# list10 = list10.tolist()
+		# Na = 0
+		# newlist10 = [Na] + list10
+		# newlist10 = newlist10[:-1]
+		# teams['gen_avg_first_downs'] = newlist10
+		# teams['gen_avg_pass_comp_pct'] = teams.gen_pass_comp_pct.expanding(1).mean()
+		# listppct = teams['gen_avg_pass_comp_pct']
+		# listppct = listppct.tolist()
+		# Na = 0
+		# newlistppct = [Na] + listppct
+		# newlistppct = newlistppct[:-1]
+		# teams['gen_avg_pass_comp_pct'] = newlistppct
+		# teams['gen_avg_ints_per_attempt'] = teams.gen_ints_per_attempt.expanding(1).mean()
+		# list_ints_per = teams['gen_avg_ints_per_attempt']
+		# list_ints_per = list_ints_per.tolist()
+		# Na = 0
+		# newlist_ints_per = [Na] + list_ints_per
+		# newlist_ints_per = newlist_ints_per[:-1]
+		# teams['gen_avg_ints_per_attempt'] = newlist_ints_per
+		# teams['gen_avg_pass_yards_per_attempt'] = teams.gen_pass_yards_per_attempt.expanding(1).mean()
+		# list_pass_yards_per = teams['gen_avg_pass_yards_per_attempt']
+		# list_pass_yards_per = list_pass_yards_per.tolist()
+		# Na = 0
+		# newlist_pass_yards_per = [Na] + list_pass_yards_per
+		# newlist_pass_yards_per = newlist_pass_yards_per[:-1]
+		# teams['gen_avg_pass_yards_per_attempt'] = newlist_pass_yards_per
+		# teams['gen_op_avg_penalty_yards'] = teams.gen_op_penalty_yards.expanding(1).mean()
+		# listpy = teams['gen_op_avg_penalty_yards']
+		# listpy = listpy.tolist()
+		# Na = 0
+		# newlistpy = [Na] + listpy
+		# newlistpy = newlistpy[:-1]
+		# teams['gen_op_avg_penalty_yards'] = newlistpy
+		# teams['gen_avg_sacks_allowed'] = teams.gen_op_sacks.expanding(1).mean()
+		# lists = teams['gen_avg_sacks_allowed']
+		# lists = lists.tolist()
+		# Na = 0
+		# newlists = [Na] + lists
+		# newlists = newlists[:-1]
+		# teams['gen_avg_sacks_allowed'] = newlists
+		# teams['gen_avg_sack_yards_allowed'] = teams.gen_op_sack_yards.expanding(1).mean()
+		# listsy = teams['gen_avg_sack_yards_allowed']
+		# listsy = listsy.tolist()
+		# Na = 0
+		# newlistsy = [Na] + listsy
+		# newlistsy = newlistsy[:-1]
+		# teams['gen_avg_sack_yards_allowed'] = newlistsy
+		# teams['gen_avg_pass_tds_allowed'] = teams.gen_op_pass_td.expanding(1).mean()
+		# listptds = teams['gen_avg_pass_tds_allowed']
+		# listptds = listptds.tolist()
+		# Na = 0
+		# newlistptds = [Na] + listptds
+		# newlistptds = newlistptds[:-1]
+		# teams['gen_avg_pass_tds_allowed'] = newlistptds
+		# teams['gen_avg_total_yards_allowed'] = teams.gen_op_total_yards.expanding(1).mean()
+		# list8 = teams['gen_avg_total_yards_allowed']
+		# list8 = list8.tolist()
+		# Na = 0
+		# newlist8 = [Na] + list8
+		# newlist8 = newlist8[:-1]
+		# teams['gen_avg_total_yards_allowed'] = newlist8
+		# teams['gen_avg_first_downs_allowed'] = teams.gen_op_first_downs.expanding(1).mean()
+		# list10 = teams['gen_avg_first_downs_allowed']
+		# list10 = list10.tolist()
+		# Na = 0
+		# newlist10 = [Na] + list10
+		# newlist10 = newlist10[:-1]
+		# teams['gen_avg_first_downs_allowed'] = newlist10
+		# teams['gen_avg_top_allowed'] = teams.gen_op_top.expanding(1).mean()
+		# list11 = teams['gen_avg_top_allowed']
+		# list11 = list11.tolist()
+		# Na = 0
+		# newlist11 = [Na] + list11
+		# newlist11 = newlist11[:-1]
+		# teams['gen_avg_top_allowed'] = newlist11
+		# teams['gen_avg_pass_yards_per_attempt_allowed'] = teams.gen_op_pass_yards_per_attempt.expanding(1).mean()
+		# list_pass_yards_per = teams['gen_avg_pass_yards_per_attempt_allowed']
+		# list_pass_yards_per = list_pass_yards_per.tolist()
+		# Na = 0
+		# newlist_pass_yards_per = [Na] + list_pass_yards_per
+		# newlist_pass_yards_per = newlist_pass_yards_per[:-1]
+		# teams['gen_avg_pass_yards_per_attempt_allowed'] = newlist_pass_yards_per
+		# teams['gen_avg_rush_tds_per_attempt_allowed'] = teams.gen_op_rush_tds_per_attempt.expanding(1).mean()
+		# list_rush_tds_per = teams['gen_avg_rush_tds_per_attempt_allowed']
+		# list_rush_tds_per = list_rush_tds_per.tolist()
+		# Na = 0
+		# newlist_rush_tds_per = [Na] + list_rush_tds_per
+		# newlist_rush_tds_per = newlist_rush_tds_per[:-1]
+		# teams['gen_avg_rush_tds_per_attempt_allowed'] = newlist_rush_tds_per
 		print(teams['h_team'])
 		print(teams['a_team'])
 		master2.append(teams)
@@ -1223,120 +1226,120 @@ def home_away_stats(big_csv):
 	al2 = al2.tolist()
 	h_al = []
 	a_al = []
-	fum = big_csv1['gen_avg_fumbles_x']
-	fum = fum.tolist()
-	fum2 = big_csv2['gen_avg_fumbles_x']
-	fum2 = fum2.tolist()
-	h_fumbles = []
-	a_fumbles = []
-	sak = big_csv1['gen_avg_sacks_x']
-	sak = sak.tolist()
-	sak2 = big_csv2['gen_avg_sacks_x']
-	sak2 = sak2.tolist()
-	h_sacks = []
-	a_sacks = []
-	sak_y = big_csv1['gen_avg_sack_yards_x']
-	sak_y = sak_y.tolist()
-	sak_y2 = big_csv2['gen_avg_sack_yards_x']
-	sak_y2 = sak_y2.tolist()
-	h_sack_yards = []
-	a_sack_yards = []
-	ptd = big_csv1['gen_avg_pass_tds_x']
-	ptd = ptd.tolist()
-	ptd2 = big_csv2['gen_avg_pass_tds_x']
-	ptd2 = ptd2.tolist()
-	h_pass_tds = []
-	a_pass_tds = []
-	inte = big_csv1['gen_avg_interceptions_x']
-	inte = inte.tolist()
-	inte2 = big_csv2['gen_avg_interceptions_x']
-	inte2 = inte2.tolist()
-	h_interceptions = []
-	a_interceptions = []
-	tot_y = big_csv1['gen_avg_total_yards_x']
-	tot_y = tot_y.tolist()
-	tot_y2 = big_csv2['gen_avg_total_yards_x']
-	tot_y2 = tot_y2.tolist()
-	h_total_yds = []
-	a_total_yds = []
-	fd = big_csv1['gen_avg_first_downs_y']
-	fd = fd.tolist()
-	fd2 = big_csv2['gen_avg_first_downs_y']
-	fd2 = fd2.tolist()
-	h_fd = []
-	a_fd = []
-	pcp = big_csv1['gen_avg_pass_comp_pct_x']
-	pcp = pcp.tolist()
-	pcp2 = big_csv2['gen_avg_pass_comp_pct_x']
-	pcp2 = pcp2.tolist()
-	h_pass_comp_pct = []
-	a_pass_comp_pct = []
-	ipa = big_csv1['gen_avg_ints_per_attempt_x']
-	ipa = ipa.tolist()
-	ipa2 = big_csv2['gen_avg_ints_per_attempt_x']
-	ipa2 = ipa2.tolist()
-	h_int_pa = []
-	a_int_pa = []
-	pypa = big_csv1['gen_avg_pass_yards_per_attempt_x']
-	pypa = pypa.tolist()
-	pypa2 = big_csv2['gen_avg_pass_yards_per_attempt_x']
-	pypa2 = pypa2.tolist()
-	h_pass_yds_pa =[]
-	a_pass_yds_pa =[]
-	opy = big_csv1['gen_op_avg_penalty_yards_x']
-	opy = opy.tolist()
-	opy2 = big_csv2['gen_op_avg_penalty_yards_x']
-	opy2 = opy2.tolist()
-	h_op_penalty_yards =[]
-	a_op_penalty_yards =[]
-	skal = big_csv1['gen_avg_sacks_allowed_x']
-	skal = skal.tolist()
-	skal2 = big_csv2['gen_avg_sacks_allowed_x']
-	skal2 = skal2.tolist()
-	h_sacks_all = []
-	a_sacks_all = []
-	skyal = big_csv1['gen_avg_sack_yards_allowed_x']
-	skyal = skyal.tolist()
-	skyal2 = big_csv2['gen_avg_sack_yards_allowed_x']
-	skyal2 = skyal2.tolist()
-	h_sacks_y_all = []
-	a_sacks_y_all = []
-	ptdal = big_csv1['gen_avg_pass_tds_allowed_x']
-	ptdal = ptdal.tolist()
-	ptdal2 = big_csv2['gen_avg_pass_tds_allowed_x']
-	ptdal2 = ptdal2.tolist()
-	h_pass_tds_all = []
-	a_pass_tds_all = []
-	totyall = big_csv1['gen_avg_total_yards_allowed_x']
-	totyall = totyall.tolist()
-	totyall2 = big_csv2['gen_avg_total_yards_allowed_x']
-	totyall2 = totyall2.tolist()
-	h_tot_yds_all = []
-	a_tot_yds_all = []
-	fdall = big_csv1['gen_avg_first_downs_allowed_x']
-	fdall = fdall.tolist()
-	fdall2 = big_csv2['gen_avg_first_downs_allowed_x']
-	fdall2 = fdall2.tolist()
-	h_fd_all = []
-	a_fd_all = []
-	topal = big_csv1['gen_avg_top_allowed_x']
-	topal = topal.tolist()
-	topal2 = big_csv2['gen_avg_top_allowed_x']
-	topal2 = topal2.tolist()
-	h_top_all = []
-	a_top_all = []
-	pypaal = big_csv1['gen_avg_pass_yards_per_attempt_allowed_x']
-	pypaal = pypaal.tolist()
-	pypaal2 = big_csv2['gen_avg_pass_yards_per_attempt_allowed_x']
-	pypaal2 = pypaal2.tolist()
-	h_p_yds_pa_all = []
-	a_p_yds_pa_all = []
-	rtdpaal = big_csv1['gen_avg_rush_tds_per_attempt_allowed_x']
-	rtdpaal = rtdpaal.tolist()
-	rtdpaal2 = big_csv2['gen_avg_rush_tds_per_attempt_allowed_x']
-	rtdpaal2 = rtdpaal2.tolist()
-	h_r_tds_pa_all = []
-	a_r_tds_pa_all = []
+	# fum = big_csv1['gen_avg_fumbles_x']
+	# fum = fum.tolist()
+	# fum2 = big_csv2['gen_avg_fumbles_x']
+	# fum2 = fum2.tolist()
+	# h_fumbles = []
+	# a_fumbles = []
+	# sak = big_csv1['gen_avg_sacks_x']
+	# sak = sak.tolist()
+	# sak2 = big_csv2['gen_avg_sacks_x']
+	# sak2 = sak2.tolist()
+	# h_sacks = []
+	# a_sacks = []
+	# sak_y = big_csv1['gen_avg_sack_yards_x']
+	# sak_y = sak_y.tolist()
+	# sak_y2 = big_csv2['gen_avg_sack_yards_x']
+	# sak_y2 = sak_y2.tolist()
+	# h_sack_yards = []
+	# a_sack_yards = []
+	# ptd = big_csv1['gen_avg_pass_tds_x']
+	# ptd = ptd.tolist()
+	# ptd2 = big_csv2['gen_avg_pass_tds_x']
+	# ptd2 = ptd2.tolist()
+	# h_pass_tds = []
+	# a_pass_tds = []
+	# inte = big_csv1['gen_avg_interceptions_x']
+	# inte = inte.tolist()
+	# inte2 = big_csv2['gen_avg_interceptions_x']
+	# inte2 = inte2.tolist()
+	# h_interceptions = []
+	# a_interceptions = []
+	# tot_y = big_csv1['gen_avg_total_yards_x']
+	# tot_y = tot_y.tolist()
+	# tot_y2 = big_csv2['gen_avg_total_yards_x']
+	# tot_y2 = tot_y2.tolist()
+	# h_total_yds = []
+	# a_total_yds = []
+	# fd = big_csv1['gen_avg_first_downs_y']
+	# fd = fd.tolist()
+	# fd2 = big_csv2['gen_avg_first_downs_y']
+	# fd2 = fd2.tolist()
+	# h_fd = []
+	# a_fd = []
+	# pcp = big_csv1['gen_avg_pass_comp_pct_x']
+	# pcp = pcp.tolist()
+	# pcp2 = big_csv2['gen_avg_pass_comp_pct_x']
+	# pcp2 = pcp2.tolist()
+	# h_pass_comp_pct = []
+	# a_pass_comp_pct = []
+	# ipa = big_csv1['gen_avg_ints_per_attempt_x']
+	# ipa = ipa.tolist()
+	# ipa2 = big_csv2['gen_avg_ints_per_attempt_x']
+	# ipa2 = ipa2.tolist()
+	# h_int_pa = []
+	# a_int_pa = []
+	# pypa = big_csv1['gen_avg_pass_yards_per_attempt_x']
+	# pypa = pypa.tolist()
+	# pypa2 = big_csv2['gen_avg_pass_yards_per_attempt_x']
+	# pypa2 = pypa2.tolist()
+	# h_pass_yds_pa =[]
+	# a_pass_yds_pa =[]
+	# opy = big_csv1['gen_op_avg_penalty_yards_x']
+	# opy = opy.tolist()
+	# opy2 = big_csv2['gen_op_avg_penalty_yards_x']
+	# opy2 = opy2.tolist()
+	# h_op_penalty_yards =[]
+	# a_op_penalty_yards =[]
+	# skal = big_csv1['gen_avg_sacks_allowed_x']
+	# skal = skal.tolist()
+	# skal2 = big_csv2['gen_avg_sacks_allowed_x']
+	# skal2 = skal2.tolist()
+	# h_sacks_all = []
+	# a_sacks_all = []
+	# skyal = big_csv1['gen_avg_sack_yards_allowed_x']
+	# skyal = skyal.tolist()
+	# skyal2 = big_csv2['gen_avg_sack_yards_allowed_x']
+	# skyal2 = skyal2.tolist()
+	# h_sacks_y_all = []
+	# a_sacks_y_all = []
+	# ptdal = big_csv1['gen_avg_pass_tds_allowed_x']
+	# ptdal = ptdal.tolist()
+	# ptdal2 = big_csv2['gen_avg_pass_tds_allowed_x']
+	# ptdal2 = ptdal2.tolist()
+	# h_pass_tds_all = []
+	# a_pass_tds_all = []
+	# totyall = big_csv1['gen_avg_total_yards_allowed_x']
+	# totyall = totyall.tolist()
+	# totyall2 = big_csv2['gen_avg_total_yards_allowed_x']
+	# totyall2 = totyall2.tolist()
+	# h_tot_yds_all = []
+	# a_tot_yds_all = []
+	# fdall = big_csv1['gen_avg_first_downs_allowed_x']
+	# fdall = fdall.tolist()
+	# fdall2 = big_csv2['gen_avg_first_downs_allowed_x']
+	# fdall2 = fdall2.tolist()
+	# h_fd_all = []
+	# a_fd_all = []
+	# topal = big_csv1['gen_avg_top_allowed_x']
+	# topal = topal.tolist()
+	# topal2 = big_csv2['gen_avg_top_allowed_x']
+	# topal2 = topal2.tolist()
+	# h_top_all = []
+	# a_top_all = []
+	# pypaal = big_csv1['gen_avg_pass_yards_per_attempt_allowed_x']
+	# pypaal = pypaal.tolist()
+	# pypaal2 = big_csv2['gen_avg_pass_yards_per_attempt_allowed_x']
+	# pypaal2 = pypaal2.tolist()
+	# h_p_yds_pa_all = []
+	# a_p_yds_pa_all = []
+	# rtdpaal = big_csv1['gen_avg_rush_tds_per_attempt_allowed_x']
+	# rtdpaal = rtdpaal.tolist()
+	# rtdpaal2 = big_csv2['gen_avg_rush_tds_per_attempt_allowed_x']
+	# rtdpaal2 = rtdpaal2.tolist()
+	# h_r_tds_pa_all = []
+	# a_r_tds_pa_all = []
 
 
 
@@ -1351,25 +1354,25 @@ def home_away_stats(big_csv):
 			h_py.append(py1[x])
 			h_sc.append(sc1[x])
 			h_al.append(al1[x])
-			h_fumbles.append(fum[x])
-			h_sacks.append(sak[x])
-			h_sack_yards.append(sak_y[x])
-			h_pass_tds.append(ptd[x])
-			h_interceptions.append(inte[x])
-			h_total_yds.append(tot_y[x])
-			h_fd.append(fd[x])
-			h_pass_comp_pct.append(pcp[x])
-			h_int_pa.append(ipa[x])
-			h_pass_yds_pa.append(pypa[x])
-			h_op_penalty_yards.append(opy[x])
-			h_sacks_all.append(skal[x])
-			h_sacks_y_all.append(skyal[x])
-			h_pass_tds_all.append(ptdal[x])
-			h_tot_yds_all.append(totyall[x])
-			h_fd_all.append(fdall[x])
-			h_top_all.append(topal[x])
-			h_p_yds_pa_all.append(pypaal[x])
-			h_r_tds_pa_all.append(rtdpaal[x])
+			# h_fumbles.append(fum[x])
+			# h_sacks.append(sak[x])
+			# h_sack_yards.append(sak_y[x])
+			# h_pass_tds.append(ptd[x])
+			# h_interceptions.append(inte[x])
+			# h_total_yds.append(tot_y[x])
+			# h_fd.append(fd[x])
+			# h_pass_comp_pct.append(pcp[x])
+			# h_int_pa.append(ipa[x])
+			# h_pass_yds_pa.append(pypa[x])
+			# h_op_penalty_yards.append(opy[x])
+			# h_sacks_all.append(skal[x])
+			# h_sacks_y_all.append(skyal[x])
+			# h_pass_tds_all.append(ptdal[x])
+			# h_tot_yds_all.append(totyall[x])
+			# h_fd_all.append(fdall[x])
+			# h_top_all.append(topal[x])
+			# h_p_yds_pa_all.append(pypaal[x])
+			# h_r_tds_pa_all.append(rtdpaal[x])
 		else:
 			a_pen.append(pen1[x])
 			a_ry.append(ry1[x])
@@ -1378,25 +1381,25 @@ def home_away_stats(big_csv):
 			a_py.append(py1[x])
 			a_sc.append(sc1[x])
 			a_al.append(al1[x])
-			a_fumbles.append(fum[x])
-			a_sacks.append(sak[x])
-			a_sack_yards.append(sak_y[x])
-			a_pass_tds.append(ptd[x])
-			a_interceptions.append(inte[x])
-			a_total_yds.append(tot_y[x])
-			a_fd.append(fd[x])
-			a_pass_comp_pct.append(pcp[x])
-			a_int_pa.append(ipa[x])
-			a_pass_yds_pa.append(pypa[x])
-			a_op_penalty_yards.append(opy[x])
-			a_sacks_all.append(skal[x])
-			a_sacks_y_all.append(skyal[x])
-			a_pass_tds_all.append(ptdal[x])
-			a_tot_yds_all.append(totyall[x])
-			a_fd_all.append(fdall[x])
-			a_top_all.append(topal[x])
-			a_p_yds_pa_all.append(pypaal[x])
-			a_r_tds_pa_all.append(rtdpaal[x])
+			# a_fumbles.append(fum[x])
+			# a_sacks.append(sak[x])
+			# a_sack_yards.append(sak_y[x])
+			# a_pass_tds.append(ptd[x])
+			# a_interceptions.append(inte[x])
+			# a_total_yds.append(tot_y[x])
+			# a_fd.append(fd[x])
+			# a_pass_comp_pct.append(pcp[x])
+			# a_int_pa.append(ipa[x])
+			# a_pass_yds_pa.append(pypa[x])
+			# a_op_penalty_yards.append(opy[x])
+			# a_sacks_all.append(skal[x])
+			# a_sacks_y_all.append(skyal[x])
+			# a_pass_tds_all.append(ptdal[x])
+			# a_tot_yds_all.append(totyall[x])
+			# a_fd_all.append(fdall[x])
+			# a_top_all.append(topal[x])
+			# a_p_yds_pa_all.append(pypaal[x])
+			# a_r_tds_pa_all.append(rtdpaal[x])
 		if str(genw2[x]) == str(hw1[x]):
 			h_pen.append(pen2[x])
 			h_ry.append(ry2[x])
@@ -1405,25 +1408,25 @@ def home_away_stats(big_csv):
 			h_py.append(py2[x])
 			h_sc.append(sc2[x])
 			h_al.append(al2[x])
-			h_fumbles.append(fum2[x])
-			h_sacks.append(sak2[x])
-			h_sack_yards.append(sak_y2[x])
-			h_pass_tds.append(ptd2[x])
-			h_interceptions.append(inte2[x])
-			h_total_yds.append(tot_y2[x])
-			h_fd.append(fd2[x])
-			h_pass_comp_pct.append(pcp2[x])
-			h_int_pa.append(ipa2[x])
-			h_pass_yds_pa.append(pypa2[x])
-			h_op_penalty_yards.append(opy2[x])
-			h_sacks_all.append(skal2[x])
-			h_sacks_y_all.append(skyal2[x])
-			h_pass_tds_all.append(ptdal2[x])
-			h_tot_yds_all.append(totyall2[x])
-			h_fd_all.append(fdall2[x])
-			h_top_all.append(topal2[x])
-			h_p_yds_pa_all.append(pypaal2[x])
-			h_r_tds_pa_all.append(rtdpaal2[x])
+			# h_fumbles.append(fum2[x])
+			# h_sacks.append(sak2[x])
+			# h_sack_yards.append(sak_y2[x])
+			# h_pass_tds.append(ptd2[x])
+			# h_interceptions.append(inte2[x])
+			# h_total_yds.append(tot_y2[x])
+			# h_fd.append(fd2[x])
+			# h_pass_comp_pct.append(pcp2[x])
+			# h_int_pa.append(ipa2[x])
+			# h_pass_yds_pa.append(pypa2[x])
+			# h_op_penalty_yards.append(opy2[x])
+			# h_sacks_all.append(skal2[x])
+			# h_sacks_y_all.append(skyal2[x])
+			# h_pass_tds_all.append(ptdal2[x])
+			# h_tot_yds_all.append(totyall2[x])
+			# h_fd_all.append(fdall2[x])
+			# h_top_all.append(topal2[x])
+			# h_p_yds_pa_all.append(pypaal2[x])
+			# h_r_tds_pa_all.append(rtdpaal2[x])
 		else:
 			a_pen.append(pen2[x])
 			a_ry.append(ry2[x])
@@ -1432,80 +1435,80 @@ def home_away_stats(big_csv):
 			a_py.append(py2[x])
 			a_sc.append(sc2[x])
 			a_al.append(al2[x])
-			a_fumbles.append(fum2[x])
-			a_sacks.append(sak2[x])
-			a_sack_yards.append(sak_y2[x])
-			a_pass_tds.append(ptd2[x])
-			a_interceptions.append(inte2[x])
-			a_total_yds.append(tot_y2[x])
-			a_fd.append(fd2[x])
-			a_pass_comp_pct.append(pcp2[x])
-			a_int_pa.append(ipa2[x])
-			a_pass_yds_pa.append(pypa2[x])
-			a_op_penalty_yards.append(opy2[x])
-			a_sacks_all.append(skal2[x])
-			a_sacks_y_all.append(skyal2[x])
-			a_pass_tds_all.append(ptdal2[x])
-			a_tot_yds_all.append(totyall2[x])
-			a_fd_all.append(fdall2[x])
-			a_top_all.append(topal2[x])
-			a_p_yds_pa_all.append(pypaal2[x])
-			a_r_tds_pa_all.append(rtdpaal2[x])
+			# a_fumbles.append(fum2[x])
+			# a_sacks.append(sak2[x])
+			# a_sack_yards.append(sak_y2[x])
+			# a_pass_tds.append(ptd2[x])
+			# a_interceptions.append(inte2[x])
+			# a_total_yds.append(tot_y2[x])
+			# a_fd.append(fd2[x])
+			# a_pass_comp_pct.append(pcp2[x])
+			# a_int_pa.append(ipa2[x])
+			# a_pass_yds_pa.append(pypa2[x])
+			# a_op_penalty_yards.append(opy2[x])
+			# a_sacks_all.append(skal2[x])
+			# a_sacks_y_all.append(skyal2[x])
+			# a_pass_tds_all.append(ptdal2[x])
+			# a_tot_yds_all.append(totyall2[x])
+			# a_fd_all.append(fdall2[x])
+			# a_top_all.append(topal2[x])
+			# a_p_yds_pa_all.append(pypaal2[x])
+			# a_r_tds_pa_all.append(rtdpaal2[x])
 
 
 	big_csv1['Home_team_gen_avg_penalties'] = h_pen
 	big_csv1['Home_team_gen_avg_rush_yards'] = h_ry
 	big_csv1['Home_team_gen_avg_time_of_possesion'] = h_top
 	big_csv1['Home_team_gen_avg_turnovers'] = h_to
-	big_csv1['Home_team_gen_avg_sacks'] = h_sacks
-	big_csv1['Home_team_gen_avg_sack_yards'] = h_sack_yards
+	# big_csv1['Home_team_gen_avg_sacks'] = h_sacks
+	# big_csv1['Home_team_gen_avg_sack_yards'] = h_sack_yards
 	big_csv1['Home_team_gen_avg_pass_yards'] = h_py
 	big_csv1['Home_team_gen_avg_score'] = h_sc
 	big_csv1['Home_team_gen_avg_points_allowed'] = h_al
-	big_csv1['Home_team_gen_avg_fumbles'] = h_fumbles
-	big_csv1['Home_team_gen_avg_pass_tds'] = h_pass_tds
-	big_csv1['Home_team_gen_avg_interceptions'] = h_interceptions
-	big_csv1['Home_team_gen_avg_total_yards'] = h_total_yds
-	big_csv1['Home_team_gen_avg_first_downs'] = h_fd
-	big_csv1['Home_team_gen_avg_pass_completion_pct'] = h_pass_comp_pct
-	big_csv1['Home_team_gen_avg_interceptions_per_attempt'] = h_int_pa
-	big_csv1['Home_team_gen_avg_pass_yards_per_attempt'] = h_pass_yds_pa
-	big_csv1['Home_team_gen_avg_op_penalty_yards'] = h_op_penalty_yards
-	big_csv1['Home_team_gen_avg_sacks_allowed'] = h_sacks_all
-	big_csv1['Home_team_gen_avg_sack_yards_allowed'] = h_sacks_y_all
-	big_csv1['Home_team_gen_avg_pass_tds_allowed'] = h_pass_tds_all
-	big_csv1['Home_team_gen_avg_total_yards_allowed'] = h_tot_yds_all
-	big_csv1['Home_team_gen_avg_first_downs_allowed'] = h_fd_all
-	big_csv1['Home_team_gen_avg_top_allowed'] = h_top_all
-	big_csv1['Home_team_gen_avg_pass_yards_per_attempt_allowed'] = h_p_yds_pa_all
-	big_csv1['Home_team_gen_avg_rush_tds_per_attempt_allowed'] = h_r_tds_pa_all
+	# big_csv1['Home_team_gen_avg_fumbles'] = h_fumbles
+	# big_csv1['Home_team_gen_avg_pass_tds'] = h_pass_tds
+	# big_csv1['Home_team_gen_avg_interceptions'] = h_interceptions
+	# big_csv1['Home_team_gen_avg_total_yards'] = h_total_yds
+	# big_csv1['Home_team_gen_avg_first_downs'] = h_fd
+	# big_csv1['Home_team_gen_avg_pass_completion_pct'] = h_pass_comp_pct
+	# big_csv1['Home_team_gen_avg_interceptions_per_attempt'] = h_int_pa
+	# big_csv1['Home_team_gen_avg_pass_yards_per_attempt'] = h_pass_yds_pa
+	# big_csv1['Home_team_gen_avg_op_penalty_yards'] = h_op_penalty_yards
+	# big_csv1['Home_team_gen_avg_sacks_allowed'] = h_sacks_all
+	# big_csv1['Home_team_gen_avg_sack_yards_allowed'] = h_sacks_y_all
+	# big_csv1['Home_team_gen_avg_pass_tds_allowed'] = h_pass_tds_all
+	# big_csv1['Home_team_gen_avg_total_yards_allowed'] = h_tot_yds_all
+	# big_csv1['Home_team_gen_avg_first_downs_allowed'] = h_fd_all
+	# big_csv1['Home_team_gen_avg_top_allowed'] = h_top_all
+	# big_csv1['Home_team_gen_avg_pass_yards_per_attempt_allowed'] = h_p_yds_pa_all
+	# big_csv1['Home_team_gen_avg_rush_tds_per_attempt_allowed'] = h_r_tds_pa_all
 
 	big_csv1['Away_team_gen_avg_penalties'] = a_pen
 	big_csv1['Away_team_gen_avg_rush_yards'] = a_ry
 	big_csv1['Away_team_gen_avg_time_of_possesion'] = a_top
 	big_csv1['Away_team_gen_avg_turnovers'] = a_to
-	big_csv1['Away_team_gen_avg_sacks'] = a_sacks
-	big_csv1['Away_team_gen_avg_sack_yards'] = a_sack_yards
+	# big_csv1['Away_team_gen_avg_sacks'] = a_sacks
+	# big_csv1['Away_team_gen_avg_sack_yards'] = a_sack_yards
 	big_csv1['Away_team_gen_avg_pass_yards'] = a_py
 	big_csv1['Away_team_gen_avg_score'] = a_sc
 	big_csv1['Away_team_gen_avg_points_allowed'] = a_al
-	big_csv1['Away_team_gen_avg_fumbles'] = a_fumbles
-	big_csv1['Away_team_gen_avg_pass_tds'] = a_pass_tds
-	big_csv1['Away_team_gen_avg_interceptions'] = a_interceptions
-	big_csv1['Away_team_gen_avg_total_yards'] = a_total_yds
-	big_csv1['Away_team_gen_avg_first_downs'] = a_fd
-	big_csv1['Away_team_gen_avg_pass_completion_pct'] = a_pass_comp_pct
-	big_csv1['Away_team_gen_avg_interceptions_per_attempt'] = a_int_pa
-	big_csv1['Away_team_gen_avg_pass_yards_per_attempt'] = a_pass_yds_pa
-	big_csv1['Away_team_gen_avg_op_penalty_yards'] = a_op_penalty_yards
-	big_csv1['Away_team_gen_avg_sacks_allowed'] = a_sacks_all
-	big_csv1['Away_team_gen_avg_sack_yards_allowed'] = a_sacks_y_all
-	big_csv1['Away_team_gen_avg_pass_tds_allowed'] = a_pass_tds_all
-	big_csv1['Away_team_gen_avg_total_yards_allowed'] = a_tot_yds_all
-	big_csv1['Away_team_gen_avg_first_downs_allowed'] = a_fd_all
-	big_csv1['Away_team_gen_avg_top_allowed'] = a_top_all
-	big_csv1['Away_team_gen_avg_pass_yards_per_attempt_allowed'] = a_p_yds_pa_all
-	big_csv1['Away_team_gen_avg_rush_tds_per_attempt_allowed'] = a_r_tds_pa_all
+	# big_csv1['Away_team_gen_avg_fumbles'] = a_fumbles
+	# big_csv1['Away_team_gen_avg_pass_tds'] = a_pass_tds
+	# big_csv1['Away_team_gen_avg_interceptions'] = a_interceptions
+	# big_csv1['Away_team_gen_avg_total_yards'] = a_total_yds
+	# big_csv1['Away_team_gen_avg_first_downs'] = a_fd
+	# big_csv1['Away_team_gen_avg_pass_completion_pct'] = a_pass_comp_pct
+	# big_csv1['Away_team_gen_avg_interceptions_per_attempt'] = a_int_pa
+	# big_csv1['Away_team_gen_avg_pass_yards_per_attempt'] = a_pass_yds_pa
+	# big_csv1['Away_team_gen_avg_op_penalty_yards'] = a_op_penalty_yards
+	# big_csv1['Away_team_gen_avg_sacks_allowed'] = a_sacks_all
+	# big_csv1['Away_team_gen_avg_sack_yards_allowed'] = a_sacks_y_all
+	# big_csv1['Away_team_gen_avg_pass_tds_allowed'] = a_pass_tds_all
+	# big_csv1['Away_team_gen_avg_total_yards_allowed'] = a_tot_yds_all
+	# big_csv1['Away_team_gen_avg_first_downs_allowed'] = a_fd_all
+	# big_csv1['Away_team_gen_avg_top_allowed'] = a_top_all
+	# big_csv1['Away_team_gen_avg_pass_yards_per_attempt_allowed'] = a_p_yds_pa_all
+	# big_csv1['Away_team_gen_avg_rush_tds_per_attempt_allowed'] = a_r_tds_pa_all
 
 
 	
@@ -1517,7 +1520,7 @@ def home_away_stats(big_csv):
 
 def erase_rows(df):
 	# df2 = df[df.Date < 20191028]
-	df = df[df.Date >= 20191028]
+	df = df[df.Date >= 20191104]
 
 	# df2 = open_csv('nfl_history_with_stats.csv')
 	
@@ -1534,7 +1537,7 @@ def erase_rows(df):
 	# 		'Date', 'h_win_1_score', 'h_win_0_score', 'a_team', 'h_team', 'h_ML_EV', 'a_ML_EV', 'h_ML_pick', 'a_ML_pick']
 
 
-	df.write_csv(fn='nfl_2019_week9_expanded.csv')
+	write_csv(df, fn='nfl_2019_week10_expanded.csv')
 	
 	return df
 
@@ -1556,7 +1559,7 @@ def erase_cols(df):
 	season = season.tolist()
 	df['Season'] = season
 
-	columns = ['a_team_x', 'h_team_x','gen_avg_penalties_x', 'gen_avg_score_x', 'gen_avg_allowed_x', 'Gen_Games_x', 'gen_rec_x',
+	columns = ['a_team_x', 'h_team_x','gen_avg_penalties_x', 'gen_avg_score_x', 'gen_avg_allowed_x',
 			   'gen_avg_pass_yards_x', 'gen_avg_turnovers_x', 'gen_avg_top_x', 'gen_avg_rush_yards_x',
 			   'Attendance_y', 'Date_y', 'Season_y', 'Start_time_y', 'Venue_y', 'Year_y', 'a_1stq_y',
 			   'a_2ndq_y', 'a_3rdq_y', 'a_4thq_y', 'a_5thq_y', 'a_coach_y', 'a_comp_att_yd_td_int_y',
@@ -1579,8 +1582,8 @@ def erase_cols(df):
 			   'h_rush_yards_y', 'h_rush_yards_per_attempts_y', 'h_rush_yds_tds_y', 'h_sack_yards_y',
 			   'h_sacked_yards_y', 'h_sacks_y', 'h_team_y',
 			   'h_tie_y', 'h_top_y', 'h_total_y', 'h_total_yards_y', 'h_turnovers_y', 'h_win_y',
-			   'over_under_y', 'spread_y', 'gen_avg_penalties_y', 'gen_avg_score_y', 'gen_avg_allowed_y', 'Gen_Games_y',
-			   'gen_rec_y', 'gen_avg_pass_yards_y', 'gen_avg_turnovers_y', 'gen_avg_top_y', 'gen_avg_rush_yards_y', 'Attendance_x',
+			   'over_under_y', 'spread_y', 'gen_avg_penalties_y', 'gen_avg_score_y', 'gen_avg_allowed_y',
+			   'gen_avg_pass_yards_y', 'gen_avg_turnovers_y', 'gen_avg_top_y', 'gen_avg_rush_yards_y', 'Attendance_x',
 			   'Date_x', 'Season_x', 'Start_time_x', 'Venue_x', 'Year_x', 'a_1stq_x', 'a_2ndq_x', 'a_3rdq_x', 'a_4thq_x',
 			   'a_5thq_x', 'a_coach_x', 'a_comp_att_yd_td_int_x', 'a_completions_x', 'a_f_lost_x', 'a_first_downs_x',
 			   'a_fumbles_x', 'h_none_x', 'h_none_y', 'a_none_x', 'a_none2_x', 'a_none_y', 'a_none2_y',
@@ -1591,30 +1594,18 @@ def erase_cols(df):
 			   'a_top_x', 'a_total_x', 'a_total_yards_x', 'a_turnovers_x', 'a_win_x', 'gen_net_pass_yards_x', 'gen_penalties_x', 
 			   'gen_rush_yards_x', 'gen_score_x', 'gen_score_allowed_x', 'gen_team_x', 'gen_top_x', 'gen_turnovers_x', 'gen_win_x', 
 			   'h_1stq_x', 'h_2ndq_x', 'h_3rdq_x', 'h_4thq_x', 'h_5thq_x', 'h_coach_x', 'h_comp_att_yd_td_int_x', 'h_completions_x', 
-			   'h_f_lost_x', 'h_first_downs_x',
+			   'h_f_lost_x', 'h_first_downs_x', 'gen_first_downs_x', 'gen_fumbles_x', 'gen_interceptions_x', 'gen_ints_per_attempt_x', 'gen_op_first_downs_x',
+			   'gen_op_pass_td_x', 'gen_op_pass_yards_per_attempt_x', 'gen_op_penalty_yards_x',	'gen_op_rush_tds_per_attempt_x', 'gen_op_sack_yards_x',	'gen_op_sacks_x',
+			   'gen_op_top_x', 'gen_op_total_yards_x', 'gen_pass_comp_pct_x', 'gen_pass_td_x', 'gen_pass_yards_per_attempt_x', 'gen_sack_yards_x',
+			   'gen_sacks_x', 'gen_total_yards_x',	'h_total_yards_x', 'h_turnovers_x', 'h_win_x', 'over_under_x', 'spread_x', 'Unnamed: 0_y', 'gen_first_downs_y',
+			   'gen_fumbles_y', 'gen_interceptions_y', 'gen_ints_per_attempt_y', 'gen_op_first_downs_y', 'gen_op_pass_td_y', 'gen_op_pass_yards_per_attempt_y',	
+			   'gen_op_penalty_yards_y', 'gen_op_rush_tds_per_attempt_y', 'gen_op_sack_yards_y', 'gen_op_sacks_y', 'gen_op_top_y', 'gen_op_total_yards_y',	
+			   'gen_pass_comp_pct_y', 'gen_pass_td_y', 'gen_pass_yards_per_attempt_y', 'gen_sack_yards_y', 'gen_sacks_y', 'gen_total_yards_y',
 			   'h_fumbles_x', 'h_fumbles_lost_x', 'h_interceptions_x', 'h_ints_per_attempts_x', 'h_net_pass_yards_x', 'h_p_yards_x', 
 			   'h_pass_attempts_x', 'h_pass_completion_pct_x', 'h_pass_td_x', 'h_pass_yards_x', 'h_pass_yards_per_attempts_x', 'h_penalties_x', 
 			   'h_penalty_yards_x', 'h_rush_attempts_x', 'h_rush_tds_x', 'h_rush_tds_per_attempts_x', 'h_rush_yards_x', 
 			   'h_rush_yards_per_attempts_x', 'h_rush_yds_tds_x', 'h_sack_yards_x', 'h_sacked_yards_x', 'h_sacks_x', 
-			   'h_tie_x', 'h_top_x', 'h_total_x', 'gen_op_rush_tds_per_attempt_x','gen_avg_rush_tds_per_attempt_allowed_x', 'gen_op_rush_tds_per_attempt_y', 'gen_avg_rush_tds_per_attempt_allowed_y',
-			   'h_total_yards_x', 'h_turnovers_x', 'h_win_x', 'over_under_x', 'spread_x', 
-			   'gen_avg_first_downs_allowed_x', 'gen_avg_first_downs_allowed_y', 'gen_avg_first_downs_x',
-			   'gen_avg_first_downs_y', 'gen_avg_fumbles_x', 'gen_avg_fumbles_y', 'gen_avg_interceptions_x',
-			   'gen_avg_interceptions_y', 'gen_avg_ints_per_attempt_x', 'gen_avg_ints_per_attempt_y',
-			   'gen_avg_pass_comp_pct_x', 'gen_avg_pass_comp_pct_y', 'gen_avg_pass_tds_allowed_x',
-			   'gen_avg_pass_tds_allowed_y', 'gen_avg_pass_tds_x', 'gen_avg_pass_tds_y', 'gen_avg_pass_yards_per_attempt_allowed_x',
-			   'gen_avg_pass_yards_per_attempt_allowed_y', 'gen_avg_pass_yards_per_attempt_x', 'gen_avg_pass_yards_per_attempt_y',
-			   'gen_avg_sack_yards_allowed_x', 'gen_avg_sack_yards_allowed_y', 'gen_avg_sack_yards_x',
-			   'gen_avg_sack_yards_y', 'gen_avg_sacks_allowed_x', 'gen_avg_sacks_allowed_y',
-			   'gen_avg_sacks_x', 'gen_avg_sacks_y', 'gen_avg_top_allowed_x', 'gen_avg_top_allowed_y',
-			   'gen_avg_total_yards_allowed_x', 'gen_avg_total_yards_allowed_y', 'gen_avg_total_yards_x',
-			   'gen_avg_total_yards_y', 'gen_first_downs_x', 'gen_first_downs_y', 'gen_fumbles_x', 'gen_fumbles_y',
-			   'gen_interceptions_x', 'gen_interceptions_y', 'gen_ints_per_attempt_x', 'gen_ints_per_attempt_y',
-			   'gen_op_avg_penalty_yards_x', 'gen_op_avg_penalty_yards_y', 'gen_op_first_downs_x', 'gen_op_first_downs_y', 'gen_op_pass_td_x',
-			   'gen_op_pass_td_y', 'gen_op_pass_yards_per_attempt_x', 'gen_op_pass_yards_per_attempt_y', 'gen_op_penalty_yards_x', 'gen_op_penalty_yards_y',
-			   'gen_op_sack_yards_x', 'gen_op_sack_yards_y', 'gen_op_sacks_x', 'gen_op_sacks_y', 'gen_op_top_x', 'gen_op_top_y', 'gen_op_total_yards_x',	
-			   'gen_op_total_yards_y', 'gen_pass_comp_pct_x', 'gen_pass_comp_pct_y', 'gen_pass_td_x', 'gen_pass_td_y', 'gen_pass_yards_per_attempt_x',	
-			   'gen_pass_yards_per_attempt_y', 'gen_sack_yards_x', 'gen_sack_yards_y', 'gen_sacks_x', 'gen_sacks_y', 'gen_total_yards_x', 'gen_total_yards_y']
+			   'h_tie_x', 'h_top_x', 'h_total_x']
 	for elt in columns:
 		df = df.drop(elt, axis=1)
 
@@ -1633,7 +1624,7 @@ def add_elos(df):
 	tbody = table[0].tbody
 	a = tbody.find_all('a')
 	link = a[1]['href']
-	data = open_csv(link)
+	data = pd.read_csv(link)
 
 	newlist = data['date']
 	newlist = newlist.tolist()
@@ -1698,7 +1689,7 @@ def add_elos(df):
 	data['a_team'] = a_teams	
 	merged = pd.merge(df, data, on=['a_team', 'h_team', 'Date'], how='inner')
 	print(merged)
-	merged.write_csv(fn='nfl_2019_week9_expanded.csv')
+	write_csv(merged, fn='nfl_2019_week10_expanded.csv')
 
 
 	return merged
@@ -1733,10 +1724,8 @@ def parse_event(event):
 	display_groups = event['displayGroups'][0]
 	markets = display_groups['markets']
 	a_ml, h_ml = parse_markets(markets)
-
 	data = [a_team, h_team, a_ml, h_ml]
-	# print(data)
-
+	print(data)
 	return data
     
 def parse_markets(markets):
@@ -1746,8 +1735,8 @@ def parse_markets(markets):
 		outcomes = market['outcomes']
 		if desc == 'Moneyline':
 			a_ml, h_ml = moneyline(outcomes)
-	# print(a_ml)
-	# print(h_ml)
+	print(a_ml)
+	print(h_ml)
 	return a_ml, h_ml
 
 def moneyline(outcomes):
@@ -1759,7 +1748,6 @@ def moneyline(outcomes):
 			a_ml = price['american']
 		else:
 			h_ml = price['american']
-
 	return a_ml, h_ml
 
 def teams(event):
@@ -1772,8 +1760,8 @@ def teams(event):
 	else:
 		a_team = team_one['name']
 		h_team = team_two['name']
-	# print(h_team)
-	# print(a_team)
+	print(h_team)
+	print(a_team)
 	return a_team, h_team
 
 def turn_into_df(data):
@@ -1794,11 +1782,10 @@ def turn_into_df(data):
 	df['h_team'] = h_teams
 	df['a_ML'] = a_mls
 	df['h_ML'] = h_mls
-
 	return df
 
 def add_mls_to_main(df):
-	df2 = open_csv(fn='nfl_2019_week9_expanded.csv')
+	df2 = open_csv(fn='nfl_2019_week10_expanded.csv')
 	# print(df2)
 	a_teams = df['a_team']
 	h_teams = df['h_team']
@@ -1812,12 +1799,12 @@ def add_mls_to_main(df):
 	df['a_team'] = a_teams
 	df['h_team'] = h_teams
 	merged = pd.merge(df, df2, on=['a_team', 'h_team'], how='inner')
-	merged.write_csv(fn='nfl_2019_week9_expanded.csv')
+	write_csv(merged, fn='nfl_2019_week10_expanded.csv')
 
 	return merged
 
 def get_dict_of_df():
-	df = open_csv(fn='nfl_2019_week9_expanded.csv')
+	df = open_csv(fn='nfl_2019_week10_expanded.csv')
 	dict1 = df.set_index('h_team').T.to_dict('list')
 	print(dict1)
 
@@ -1835,7 +1822,7 @@ def fix_basic_train(df):
 	cols = ['a_fourth_down_conv', 'a_third_down_conv', 'h_third_down_conv', 'h_fourth_down_conv']
 	for elt in cols:
 		df = df.drop(elt, axis=1)
-	df.write_csv(fn='nfl_history2.csv')
+	write_csv(df, fn='nfl_history2.csv')
 
 	return df
 
@@ -1855,16 +1842,16 @@ def fix_advanced_train(df):
 	# 		'Date', 'h_win_1_score', 'h_win_0_score', 'a_team', 'h_team', 'h_ML_EV', 'a_ML_EV', 'h_ML_pick', 'a_ML_pick']
 
 
-	df2.write_csv(fn='nfl_history_with_stats.csv')
+	write_csv(df2, fn='nfl_history_with_stats.csv')
 
 
-def open_csv(fn = 'data.csv'):
+def open_csv(fn='data.csv'):
 	pkg_path = live.__path__[0] + '/' + '../data/'
 	full_name = pkg_path + fn
 	df = pd.read_csv(full_name)
 	return df
 
-def write_csv(fn = 'data.csv'):
+def write_csv(df, fn='data.csv'):
 	pkg_path = live.__path__[0] + '/' + '../data/'
 	full_name = pkg_path + fn
 	df.to_csv(full_name)
