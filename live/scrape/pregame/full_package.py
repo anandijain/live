@@ -57,9 +57,9 @@ def remove_unwanted_urls(boxes):
 		d2 = boxes[x][18]
 		date = int(str(y1) + str(y2) + str(y3) + str(y4) + str(m1) + str(m2) + str(d1) + str(d2))
 		# print(date)
-		if date > 20191111: # change this number for the date that you want to target
+		if date > 20191125: # change this number for the date that you want to target
 			continue
-		if date < 20191028:
+		if date < 20191114:
 			continue
 		else:
 			newboxes.append(boxes[x])
@@ -72,7 +72,7 @@ def remove_unwanted_urls(boxes):
 
 # second function needs to take in these ids and gather all the data we need for the games (this will gather game data for every game of that season up until that point! This will require multiple functions)
 
-def scraper_main(start='201910280pit', stop='201911110sfo'):
+def scraper_main(start='201911140cle', stop='201911250ram'):
 	data_root = '.' + m.data
 	boxes = generate_urls()
 	print(boxes)
@@ -152,10 +152,10 @@ def scraper_main(start='201910280pit', stop='201911110sfo'):
 	print(df2['a_team'])
 	print(df2['h_team'])
 	df3 = get_ml()
-	# df3.write_csv(fn='nfl_week9_expanded.csv')
+	write_csv(df3, fn='nfl_week12_expanded.csv')
 	fix_advanced_train(df3)
 	df = open_csv(fn='nfl_history2.csv')
-	df = df[df.Date <= 20191104]
+	df = df[df.Date <= 20191118]
 	write_csv(df, fn='nfl_history2.csv')
 	merged = pd.merge(df3, df, on=['Game_id'], how='inner')
 	write_csv(merged, fn='nfl_one_train.csv')
@@ -1520,7 +1520,7 @@ def home_away_stats(big_csv):
 
 def erase_rows(df):
 	# df2 = df[df.Date < 20191028]
-	df = df[df.Date >= 20191104]
+	df = df[df.Date >= 20191121]
 
 	# df2 = open_csv('nfl_history_with_stats.csv')
 	
@@ -1537,7 +1537,7 @@ def erase_rows(df):
 	# 		'Date', 'h_win_1_score', 'h_win_0_score', 'a_team', 'h_team', 'h_ML_EV', 'a_ML_EV', 'h_ML_pick', 'a_ML_pick']
 
 
-	write_csv(df, fn='nfl_2019_week10_expanded.csv')
+	# write_csv(df, fn='nfl_2019_week12_expanded.csv')
 	
 	return df
 
@@ -1689,7 +1689,7 @@ def add_elos(df):
 	data['a_team'] = a_teams	
 	merged = pd.merge(df, data, on=['a_team', 'h_team', 'Date'], how='inner')
 	print(merged)
-	write_csv(merged, fn='nfl_2019_week10_expanded.csv')
+	# write_csv(merged, fn='nfl_2019_week12_expanded.csv')
 
 
 	return merged
@@ -1785,7 +1785,7 @@ def turn_into_df(data):
 	return df
 
 def add_mls_to_main(df):
-	df2 = open_csv(fn='nfl_2019_week10_expanded.csv')
+	df2 = open_csv(fn='nfl_2019_week12_expanded.csv')
 	# print(df2)
 	a_teams = df['a_team']
 	h_teams = df['h_team']
@@ -1799,12 +1799,12 @@ def add_mls_to_main(df):
 	df['a_team'] = a_teams
 	df['h_team'] = h_teams
 	merged = pd.merge(df, df2, on=['a_team', 'h_team'], how='inner')
-	write_csv(merged, fn='nfl_2019_week10_expanded.csv')
+	# write_csv(merged, fn='nfl_2019_week12_expanded.csv')
 
 	return merged
 
 def get_dict_of_df():
-	df = open_csv(fn='nfl_2019_week10_expanded.csv')
+	df = open_csv(fn='nfl_2019_week12_expanded.csv')
 	dict1 = df.set_index('h_team').T.to_dict('list')
 	print(dict1)
 
